@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body,
+        html {
+            height: 100%;
+            background-color: #f8f9fa;
+        }
+
+        .chat-box {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-box .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .message-container {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .message-container.user {
+            justify-content: flex-end;
+        }
+
+        .message-container.bot {
+            justify-content: flex-start;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 60%;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .bot-message {
+            background-color: #f1f1f1;
+            margin-right: 10px;
+        }
+
+        .bot-message.recommendation {
+            max-width: 70%;
+        }
+
+        .typing-indicator {
+            background-color: #f1f1f1;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-box {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        .input-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-right: 10px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-box button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+
+        .input-box button:hover {
+            background-color: #0056b3;
+        }
+
+        #voiceButton {
+            background-color: #28a745;
+            margin-right: 10px;
+        }
+
+        #voiceButton:hover {
+            background-color: #218838;
+        }
+
+        #voiceButton.recording {
+            background-color: #dc3545;
+        }
+
+        #voiceButton.recording:hover {
+            background-color: #c82333;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .recommendation ol {
+            padding-left: 20px;
+        }
+
+        .recommendation li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .recommendation img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .buy-now-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .buy-now-button:hover {
+            background-color: #0056b3;
+        }
+
+        @media (min-width: 992px) {
+            .chat-box {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container h-100">
+        <div class="row h-100 justify-content-center align-items-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="chat-box">
+                    <div class="messages" id="messages">
+                        <!-- Messages will appear here -->
+                    </div>
+                    <div class="input-box">
+                        <button id="voiceButton" class="btn" onclick="toggleVoiceRecording()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <input type="text" id="userInput" class="form-control" placeholder="Type a message...">
+                        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Simulate bot welcome message on page load
+            const messagesDiv = document.getElementById('messages');
+
+            // Bot welcome message
+            const botMessageContainer = document.createElement('div');
+            botMessageContainer.classList.add('message-container', 'bot');
+
+            // Bot avatar
+            const botAvatar = document.createElement('img');
+            botAvatar.src = '/static/img/bot.jpg'; // Replace with bot image URL
+            botAvatar.classList.add('avatar');
+            botMessageContainer.appendChild(botAvatar);
+
+            // Bot message
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.classList.add('message', 'bot-message');
+            botMessageContainer.appendChild(botMessageDiv);
+
+            messagesDiv.appendChild(botMessageContainer);
+
+            // Scroll to the bottom
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Display welcome message word by word
+            displayTypingMessage(botMessageDiv, "Welcome! John Doe, How can I assist you today?");
+        });
+
+        function isProductRelated(input) {
+            const productKeywords = ['product', 'item', 'buy', 'purchase', 'recommend', 'similar', 'like'];
+            return productKeywords.some(keyword => input.toLowerCase().includes(keyword));
+        }
+
+        function isOrderRelated(input) {
+            const orderKeywords = ['order', 'history', 'status', 'track', 'shipment', 'delivery', 'deliver'];
+            return orderKeywords.some(keyword => input.toLowerCase().includes(keyword));
+        }
+
+        function isEndChatRelated(input) {
+            const endChatKeywords = ['thanks', 'thank you', 'bye', 'goodbye', 'see you', 'later','thank you'];
+            return endChatKeywords.some(keyword => input.toLowerCase().includes(keyword));
+        }
+
+        function isGreetingRelated(input) {
+            const greetingKeywords = ['hi', 'hello', 'hey', 'greetings'];
+            return greetingKeywords.some(keyword => input.toLowerCase().includes(keyword));
+        }
+
+        function isCustomerService(input) {
+            const greetingKeywords = ['return', 'refund', 'refunt status', 'return status','customer service','customer'];
+            return greetingKeywords.some(keyword => input.toLowerCase().includes(keyword));
+        }
+
+        function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const messageText = userInput.value;
+            if (messageText.trim() === '') return;
+
+            const messagesDiv = document.getElementById('messages');
+
+            // User message container
+            const userMessageContainer = document.createElement('div');
+            userMessageContainer.classList.add('message-container', 'user');
+
+            // User avatar
+            const userAvatar = document.createElement('img');
+            userAvatar.src = '/static/img/human.jpg'; // Replace with user image URL
+            userAvatar.classList.add('avatar');
+            userMessageContainer.appendChild(userAvatar);
+
+            // User message
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.classList.add('message', 'user-message');
+            userMessageDiv.textContent = messageText;
+            userMessageContainer.appendChild(userMessageDiv);
+
+            messagesDiv.appendChild(userMessageContainer);
+
+            // Clear input
+            userInput.value = '';
+
+            // Scroll to the bottom
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Simulate typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('typing-indicator');
+            typingIndicator.textContent = "Bot is typing...";
+            messagesDiv.appendChild(typingIndicator);
+
+            // Scroll to the bottom
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Send message to backend
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: messageText }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    messagesDiv.removeChild(typingIndicator);
+
+                    if (isOrderRelated(messageText)) {
+                        const botMessageContainerOrder = document.createElement('div');
+                        botMessageContainerOrder.classList.add('message-container', 'bot');
+
+                        const botAvatarOrder = document.createElement('img');
+                        botAvatarOrder.src = '/static/img/bot.jpg'; // Replace with bot image URL
+                        botAvatarOrder.classList.add('avatar');
+                        botMessageContainerOrder.appendChild(botAvatarOrder);
+
+                        const botMessageDivOrder = document.createElement('div');
+                        botMessageDivOrder.classList.add('message', 'bot-message');
+                        botMessageContainerOrder.appendChild(botMessageDivOrder);
+
+                        displayTypingMessage(botMessageDivOrder, data.order_history);
+                        messagesDiv.appendChild(botMessageContainerOrder);
+                    }
+
+                    if (isProductRelated(messageText)) {
+                        // Bot message for product specifications
+                        const botMessageContainerSpecs = document.createElement('div');
+                        botMessageContainerSpecs.classList.add('message-container', 'bot');
+
+                        const botAvatarSpecs = document.createElement('img');
+                        botAvatarSpecs.src = '/static/img/bot.jpg'; // Replace with bot image URL
+                        botAvatarSpecs.classList.add('avatar');
+                        botMessageContainerSpecs.appendChild(botAvatarSpecs);
+
+                        const botMessageDivSpecs = document.createElement('div');
+                        botMessageDivSpecs.classList.add('message', 'bot-message');
+                        botMessageContainerSpecs.appendChild(botMessageDivSpecs);
+
+                        // botMessageDivSpecs.textContent = data.product_specs;
+                        displayTypingMessage(botMessageDivSpecs,  data.product_specs);
+                        messagesDiv.appendChild(botMessageContainerSpecs);
+
+                        // Bot message for recommendations
+                        const botMessageContainerRecs = document.createElement('div');
+                        botMessageContainerRecs.classList.add('message-container', 'bot');
+
+                        
+                        const botMessageDivRecs = document.createElement('div');
+                        botMessageDivRecs.classList.add('message', 'bot-message', 'recommendation');
+                        botMessageContainerRecs.appendChild(botMessageDivRecs);
+
+                        const recommendationsList = document.createElement('ol');
+                        data.recommendations.forEach(rec => {
+                            const recommendationItem = document.createElement('li');
+                            const img = document.createElement('img');
+                            img.src = rec.image_url;
+                            recommendationItem.appendChild(img);
+                            const text = document.createTextNode(`${rec.name}`);
+                            recommendationItem.appendChild(text);
+
+                            const buyButton = document.createElement('button');
+                            buyButton.classList.add('buy-now-button');
+                            buyButton.textContent = 'Buy Now';
+                            recommendationItem.appendChild(buyButton);
+
+                            recommendationsList.appendChild(recommendationItem);
+                        });
+                        botMessageDivRecs.appendChild(recommendationsList);
+                        messagesDiv.appendChild(botMessageContainerRecs);
+                    }
+                    
+                    if (isEndChatRelated(messageText)) {
+                        const botMessageContainerEndChat = document.createElement('div');
+                        botMessageContainerEndChat.classList.add('message-container', 'bot');
+
+                        const botAvatarEndChat = document.createElement('img');
+                        botAvatarEndChat.src = '/static/img/bot.jpg'; // Replace with bot image URL
+                        botAvatarEndChat.classList.add('avatar');
+                        botMessageContainerEndChat.appendChild(botAvatarEndChat);
+
+                        const botMessageDivEndChat = document.createElement('div');
+                        botMessageDivEndChat.classList.add('message', 'bot-message');
+                        botMessageContainerEndChat.appendChild(botMessageDivEndChat);
+
+                        // Randomly select an end-chat message
+                        const endChatResponses = [
+                            'You\'re welcome! If you need any more assistance, feel free to ask. Have a great day!',
+                            'Thank you for chatting! Have a wonderful day!',
+                            'Welcome! Don\'t hesitate to reach out if you need anything else.',
+                            'Thanks for reaching out! Take care!'
+                        ];
+                        const randomEndChatResponse = endChatResponses[Math.floor(Math.random() * endChatResponses.length)];
+                        // botMessageDivEndChat.textContent = randomEndChatResponse;
+                        displayTypingMessage(botMessageDivEndChat, randomEndChatResponse);
+
+                        messagesDiv.appendChild(botMessageContainerEndChat);
+                    }
+
+
+                    if (isGreetingRelated(messageText)) {
+                        const botMessageContainerGreeting = document.createElement('div');
+                        botMessageContainerGreeting.classList.add('message-container', 'bot');
+
+                        const botAvatarGreeting = document.createElement('img');
+                        botAvatarGreeting.src = '/static/img/bot.jpg'; // Replace with bot image URL
+                        botAvatarGreeting.classList.add('avatar');
+                        botMessageContainerGreeting.appendChild(botAvatarGreeting);
+
+                        const botMessageDivGreeting = document.createElement('div');
+                        botMessageDivGreeting.classList.add('message', 'bot-message');
+                        botMessageContainerGreeting.appendChild(botMessageDivGreeting);
+
+                        // Randomly select a greeting message
+                        const greetings = [
+                            'Anything?',
+                            'Hi there! Check out our latest product is out?',
+                            'Hey! Anything you need?',
+                            'Anything more, I can assist you?'
+                        ];
+                        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+                        // botMessageDivGreeting.textContent = randomGreeting;
+                        displayTypingMessage(botMessageDivGreeting, randomGreeting);
+
+
+                        messagesDiv.appendChild(botMessageContainerGreeting);
+                    }
+
+                    if (isCustomerService(messageText)) {
+                        const botMessageContainerOrder = document.createElement('div');
+                        botMessageContainerOrder.classList.add('message-container', 'bot');
+
+                        const botAvatarOrder = document.createElement('img');
+                        botAvatarOrder.src = '/static/img/bot.jpg'; // Replace with bot image URL
+                        botAvatarOrder.classList.add('avatar');
+                        botMessageContainerOrder.appendChild(botAvatarOrder);
+
+                        const botMessageDivOrder = document.createElement('div');
+                        botMessageDivOrder.classList.add('message', 'bot-message');
+                        botMessageContainerOrder.appendChild(botMessageDivOrder);
+
+                        displayTypingMessage(botMessageDivOrder, data.order_history);
+                        messagesDiv.appendChild(botMessageContainerOrder);
+                    }
+
+                    // Scroll to the bottom
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function displayTypingMessage(botMessageDiv, message) {
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < message.length) {
+                    botMessageDiv.textContent += message[index++];
+                } else {
+                    clearInterval(interval);
+                }
+            }, 50);
+        }
+
+        let recognition;
+        function toggleVoiceRecording() {
+            const voiceButton = document.getElementById('voiceButton');
+
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('Your browser does not support voice recording. Please use Google Chrome.');
+                return;
+            }
+
+            if (voiceButton.classList.contains('recording')) {
+                recognition.stop();
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function () {
+                voiceButton.classList.add('recording');
+            };
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[event.resultIndex][0].transcript.trim();
+                document.getElementById('userInput').value = transcript;
+                recognition.stop();
+                sendMessage();
+            };
+
+            recognition.onerror = function (event) {
+                console.error('Speech recognition error', event);
+                recognition.stop();
+            };
+
+            recognition.onend = function () {
+                voiceButton.classList.remove('recording');
+            };
+
+            recognition.start();
+        }
+    </script>
+</body>
+
+</html>
